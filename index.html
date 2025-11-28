@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Condomínios - Filtro Visual</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(270deg, rgb(255, 230, 0), #000);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h1 {
+      color: #ff0;
+      margin-bottom: 10px;
+    }
+
+    #searchBar {
+      width: 90%;
+      max-width: 600px;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border: 1px solid #ff0;
+      background-color: #000;
+      color: #ff0;
+    }
+
+    .lista {
+      max-width: 600px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      background-color: #000;
+      color: #ff0;
+      border: 1px solid #ff0;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #ff0;
+      color: #000;
+    }
+
+    .popup-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-y: auto;
+      z-index: 1000;
+      padding: 40px 0;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .promo-item {
+      position: relative;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    .promo-item img {
+      max-width: 90vw;
+      max-height: 60vh;
+      border-radius: 12px;
+      box-shadow: 0 0 25px #ff0;
+    }
+
+    .copy-img-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #000;
+      color: #ff0;
+      border: 1px solid #ff0;
+      border-radius: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: 0.3s;
+    }
+
+    .copy-img-btn:hover {
+      background-color: #ff0;
+      color: #000;
+    }
+
+    .texto-box {
+      position: relative;
+      background-color: #111;
+      border: 1px solid #ff0;
+      border-radius: 8px;
+      color: white;
+      padding: 15px;
+      width: 90%;
+      max-width: 600px;
+      margin: 10px auto 0 auto;
+      box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+    }
+
+    .copy-text-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #000;
+      color: #ff0;
+      border: 1px solid #ff0;
+      border-radius: 6px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: 0.3s;
+    }
+
+    .copy-text-btn:hover {
+      background-color: #ff0;
+      color: #000;
+    }
+
+    .close-btn {
+      position: fixed;
+      top: 20px;
+      right: 30px;
+      background: none;
+      color: white;
+      font-size: 30px;
+      border: none;
+      opacity: 0.7;
+      cursor: pointer;
+      z-index: 1100;
+    }
+
+    .close-btn:hover {
+      opacity: 1;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #ff0;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Selecione um Condomínio</h1>
+  <input type="text" id="searchBar" placeholder="Pesquise o nome do condomínio..." />
+  <div class="lista" id="condominio-list"></div>
+
+  <div class="popup-container" id="popup" style="display: none;">
+    <button class="close-btn" onclick="fecharPopup()">&times;</button>
+    <div id="promo-list"></div>
+  </div>
+
+  <script>
+    /* ==========================
+       1️⃣ DEFINIÇÃO DAS PROMOÇÕES
+    ========================== */
+    const promocoes = {
+      "promo_trace": [
+        { imagem: "tracecanais.jpeg", texto: "Novo Trace Canais por apenas 19,99$ nos 3 primeiros meses!" }
+      ],
+      "promo_globo": [
+        { imagem: "globopromo49e99.jpeg", texto: "600MB + Globoplay com 50% de desconto nos 3 primeiros meses!" }
+      ],
+      "promo_canais6meses": [
+        { imagem: "canais6meses.jpeg", texto: "Assine e ganhe 12 meses grátis de Trace Canais Premium!" }
+      ],
+      "promo_globo2": [
+        { imagem: "globopromo.jpeg", texto: "Plano 600MB + Globoplay por apenas R$99,99/mês!" }
+      ]
+    };
+
+    /* ==========================
+       2️⃣ ASSOCIAÇÃO DOS CONDOMÍNIOS
+    ========================== */
+    const condominioMap = {};
+    // Group 1: promo_trace + promo_globo
+    const group1 = [
+      "Energy",
+      "Living Parque Jardim Jasmim",
+      "Nova Norte Samba",
+      "Vitale On",
+      "My Jacarepaguá Style",
+      "Jerivá",
+      "Gran Royal",
+      "Stillo",
+      "Orla Recreio Prainha",
+      "Pátio Eng. Novo",
+      "Cais do Valongo",
+      "Mauá",
+      "Royal Blue",
+      "Praia Formosa",
+      "Varandas do Park",
+      "Viver Mais Campo Grande",
+      "Atmosfera",
+      "Apogeu",
+      "Orla Recreio Grumari",
+      "Vitale Eco",
+      "Residencial Ipês",
+      "Urban SC",
+      "Nova Norte Samba",
+      "Torres do Meier",
+      "Viva Vida Sta Cruz",
+      "Novolar Vargem Grande",
+      "Vivaz Marechal Rondon",
+      "Living Sunset",
+      "Dez Ramos",
+      "Tupinambás",
+      "Tulipa",
+      "Dez Bonsucesso",
+      "Brito 1 e 2",
+      "Urban Zona Norte",
+      "Jardim dos Ipes 1, 2 e 3"
+    ];
+    group1.forEach(n => condominioMap[n] = ["promo_trace", "promo_globo"]);
+
+    // Group 2: promo_canais6meses + promo_globo
+    const group2 = [
+      "Novolar Recreio",
+      "Reserva Pontal",
+      "Único Bonsucesso",
+      "Laranjeira",
+      "Parque 2"
+    ];
+    group2.forEach(n => condominioMap[n] = ["promo_canais6meses", "promo_globo"]);
+
+    // Group 3: promo_canais6meses + promo_globo
+    const group3 = [
+      "Parque Íris",
+      "Carioca Park",
+      "Reserva Carioca Park",
+      "Vivaz Magarça",
+      "Parque Violeta",
+      "Flores 1 & 2"
+    ];
+    group3.forEach(n => condominioMap[n] = ["promo_canais6meses", "promo_globo"]);
+
+    // Group 4: promo_globo
+    const group4 = [
+      "Alto São Cristovão",
+      "Arte Rosário",
+      "Árvores IV",
+      "Bossa Nova",
+      "Completo Engenho Novo",
+      "Completo Piedade",
+      "Dez Irajá",
+      "Dez Z. Norte",
+      "Encanto",
+      "Enseada do Mar",
+      "Esplendor Carioca",
+      "Felicidade",
+      "Florença",
+      "Grand Ville",
+      "Hibisco",
+      "Jardim Jasmim",
+      "Lírios I",
+      "Lírios II",
+      "Living Choice",
+      "Mérito",
+      "Naturalis",
+      "Novitá",
+      "Parque l",
+      "Parque Recanto Das Flores",
+      "Parque Recanto da Serra",
+      "Parque Recanto Verde",
+      "Pedra de Guaratiba",
+      "Pinheiros",
+      "Porto Barão",
+      "Quinta do Ipés",
+      "Recanto da Colina",
+      "Recoleta",
+      "Reserva do Sol",
+      "Residencial Jardim do Atalaia",
+      "Rio Araras",
+      "Rio Jazz",
+      "Rio Mantiqueira",
+      "Rio Oceane",
+      "Rio Rock",
+      "Rio Samba",
+      "Rockfeller",
+      "Roosevelt",
+      "Serra Lucas",
+      "Silvestre",
+      "Spazio Life",
+      "Único Engenho Novo",
+      "Único Nova Iguaçu",
+      "Urban São Cristovão",
+      "Verona",
+      "Villaggio Ventura",
+      "Viva Mais Engenho Novo",
+      "Viva Vida Harmonia",
+      "Viva Vida Moinho",
+      "Viva Vida Recanto",
+      "Viva Vida Zona Norte",
+      "Viva Vida Zona Oeste",
+      "Vivaz Piedade",
+      "West Garden"
+    ];
+    group4.forEach(n => condominioMap[n] = ["promo_globo"]);
+    /* ==========================
+       3️⃣ LÓGICA DE EXIBIÇÃO
+    ========================== */
+    const listaContainer = document.getElementById("condominio-list");
+    const popup = document.getElementById("popup");
+    const promoList = document.getElementById("promo-list");
+    const searchBar = document.getElementById("searchBar");
+
+    const condominioNomes = Object.keys(condominioMap).sort((a, b) => a.localeCompare(b));
+
+    condominioNomes.forEach(nome => {
+      const btn = document.createElement("button");
+      btn.innerText = nome;
+      btn.onclick = () => mostrarPromocoes(nome);
+      listaContainer.appendChild(btn);
+    });
+
+    searchBar.addEventListener("input", e => {
+      const query = e.target.value.toLowerCase();
+      Array.from(listaContainer.children).forEach(btn => {
+        btn.style.display = btn.innerText.toLowerCase().includes(query) ? "block" : "none";
+      });
+    });
+
+    function mostrarPromocoes(nome) {
+      promoList.innerHTML = "";
+      const promoKeys = condominioMap[nome];
+
+      promoKeys.forEach(key => {
+        const promoItens = promocoes[key];
+        promoItens.forEach(promo => {
+          const item = document.createElement("div");
+          item.className = "promo-item";
+
+          const img = document.createElement("img");
+          img.src = promo.imagem;
+          img.alt = nome;
+
+          const copyImgBtn = document.createElement("button");
+          copyImgBtn.className = "copy-img-btn";
+          copyImgBtn.textContent = "Copiar Imagem";
+          copyImgBtn.onclick = () => copiarImagem(promo.imagem);
+
+          const textoBox = document.createElement("div");
+          textoBox.className = "texto-box";
+          textoBox.innerText = promo.texto;
+
+          const copyTextBtn = document.createElement("button");
+          copyTextBtn.className = "copy-text-btn";
+          copyTextBtn.textContent = "Copiar Texto";
+          copyTextBtn.onclick = () => copiarTexto(promo.texto);
+
+          textoBox.appendChild(copyTextBtn);
+          item.appendChild(img);
+          item.appendChild(copyImgBtn);
+          item.appendChild(textoBox);
+          promoList.appendChild(item);
+        });
+      });
+
+      popup.style.display = "flex";
+    }
+
+    function fecharPopup() {
+      popup.style.display = "none";
+    }
+
+    function copiarTexto(texto) {
+      navigator.clipboard.writeText(texto).then(() => {
+        alert("Texto copiado!");
+      });
+    }
+
+    async function copiarImagem(src) {
+      try {
+        const response = await fetch(src);
+        const blob = await response.blob();
+        await navigator.clipboard.write([
+          new ClipboardItem({ [blob.type]: blob })
+        ]);
+        alert("Imagem copiada!");
+      } catch (err) {
+        alert("Falha ao copiar imagem.");
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
