@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Promoções</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(270deg, rgb(255, 230, 0), #000);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h1 {
+      color: #ff0;
+      margin-bottom: 10px;
+    }
+
+    #searchBar {
+      width: 90%;
+      max-width: 600px;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border: 1px solid #ff0;
+      background-color: #000;
+      color: #ff0;
+    }
+
+    .lista {
+      max-width: 600px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      background-color: #000;
+      color: #ff0;
+      border: 1px solid #ff0;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #ff0;
+      color: #000;
+    }
+
+    .popup-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-y: auto;
+      z-index: 1000;
+      padding: 40px 0;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .promo-item {
+      position: relative;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    .promo-item img {
+      max-width: 90vw;
+      max-height: 60vh;
+      border-radius: 12px;
+      box-shadow: 0 0 25px #ff0;
+    }
+
+    .copy-img-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #000;
+      color: #ff0;
+      border: 1px solid #ff0;
+      border-radius: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: 0.3s;
+    }
+
+    .copy-img-btn:hover {
+      background-color: #ff0;
+      color: #000;
+    }
+
+    .texto-box {
+      position: relative;
+      background-color: #111;
+      border: 1px solid #ff0;
+      border-radius: 8px;
+      color: white;
+      padding: 15px;
+      width: 90%;
+      max-width: 600px;
+      margin: 10px auto 0 auto;
+      box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+    }
+
+    .copy-text-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #000;
+      color: #ff0;
+      border: 1px solid #ff0;
+      border-radius: 6px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: 0.3s;
+    }
+
+    .copy-text-btn:hover {
+      background-color: #ff0;
+      color: #000;
+    }
+
+    .close-btn {
+      position: fixed;
+      top: 20px;
+      right: 30px;
+      background: none;
+      color: white;
+      font-size: 30px;
+      border: none;
+      opacity: 0.7;
+      cursor: pointer;
+      z-index: 1100;
+    }
+
+    .close-btn:hover {
+      opacity: 1;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #ff0;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sistema de Promoções</h1>
+  <input type="text" id="searchBar" placeholder="Pesquise o nome do condomínio..." />
+  <div class="lista" id="condominio-list"></div>
+
+  <div class="popup-container" id="popup" style="display: none;">
+    <button class="close-btn" onclick="fecharPopup()">&times;</button>
+    <div id="promo-list"></div>
+  </div>
+
+  <script>
+    /* ==========================
+       1️⃣ DEFINIÇÃO DAS PROMOÇÕES
+    ========================== */
+    const promocoes = {
+      "promo_trace": [
+        { imagem: "tracecanais.jpeg", texto: "Novo Trace Canais por apenas 19,99$ nos 3 primeiros meses!" }
+      ],
+      "promo_globo": [
+        { imagem: "globopromo49e99.jpeg", texto: "600MB + Globoplay com 50% de desconto nos 3 primeiros meses!" }
+      ],
+      "promo_canais6meses": [
+        { imagem: "canais6meses.jpeg", texto: "Assine e ganhe 12 meses grátis de Trace Canais Premium!" }
+      ]
+    };
+
+    /* ==========================
+       2️⃣ ASSOCIAÇÃO DOS CONDOMÍNIOS
+    ========================== */
+    const condominioMap = {
+      "NORTE SAMBA": ["promo_trace", "promo_globo"],
+      "PORTO CARIOCA": ["promo_trace", "promo_globo"],
+      "TRENDY CACHAMBI": ["promo_trace", "promo_globo"],
+      "NOVA IRAJÁ": ["promo_trace", "promo_globo"],
+      "DUET BARRA": ["promo_trace", "promo_globo"],
+      "IPA STUDIO": ["promo_trace", "promo_globo"],
+      "ICONYC BY YOO": ["promo_trace", "promo_globo"],
+      "VIVAZ MARECHAL RONDON": ["promo_trace", "promo_globo"],
+      "DEZ RAMOS": ["promo_trace", "promo_globo"],
+      "APOGEU": ["promo_trace", "promo_globo"],
+      "RESERVA CARIOCA PARK": ["promo_trace", "promo_globo"],
+      "ROYAL BLUE": ["promo_trace", "promo_globo"],
+      "VARANDAS DO PARK": ["promo_trace", "promo_globo"],
+      "VIVER MAIS CAMPO GRANDE": ["promo_trace", "promo_globo"],
+      "ATMOSFERA": ["promo_trace", "promo_globo"],
+      "ORLA RECREIO GRUMARI": ["promo_trace", "promo_globo"],
+      "VITALE ECO": ["promo_trace", "promo_globo"],
+      "RESIDENCIAL IPÊS": ["promo_trace", "promo_globo"],
+      "URBAN SC": ["promo_trace", "promo_globo"],
+      "TORRES DO MEIER": ["promo_trace", "promo_globo"],
+      "VIVA VIDA STA CRUZ": ["promo_trace", "promo_globo"],
+      "NOVOLAR VARGEM GRANDE": ["promo_trace", "promo_globo"],
+      "LIVING SUNSET": ["promo_trace", "promo_globo"],
+      "TUPINAMBÁS": ["promo_trace", "promo_globo"],
+      "TULIPA": ["promo_trace", "promo_globo"],
+      "DEZ BONSUCESSO": ["promo_trace", "promo_globo"],
+      "BRITO 1 E 2": ["promo_trace", "promo_globo"],
+      "PARQUE 2": ["promo_trace", "promo_globo"],
+      "URBAN ZONA NORTE": ["promo_trace", "promo_globo"],
+      "JARDIM DOS IPES 1, 2 E 3": ["promo_trace", "promo_globo"],
+      "RESERVA DO PARQUE 1": ["promo_trace", "promo_globo"],
+      "LIVING PARQUE JASMIM": ["promo_trace", "promo_globo"],
+      "STILLO BARRA": ["promo_trace", "promo_globo"],
+      "PARQUE ENSEADA DO MAR": ["promo_trace", "promo_globo"],
+      "RESERVA DO SOL": ["promo_trace", "promo_globo"],
+      "MÉRITO ZONA NORTE": ["promo_trace", "promo_globo"],
+      "COMPLETO BONSUCESSO": ["promo_trace", "promo_globo"],
+      "RECANTO VERDE": ["promo_trace", "promo_globo"],
+      "RIO WONDER CAIS": ["promo_trace", "promo_globo"],
+      "VITALE ON": ["promo_trace", "promo_globo"],
+      "CONNECT BONSUCESSO": ["promo_trace", "promo_globo"],
+      "ORLA RECREIO RESERVA": ["promo_trace", "promo_globo"],
+      "RIO ENERGY": ["promo_trace", "promo_globo"],
+      "SOLAR DOS CANARIOS": ["promo_trace", "promo_globo"],
+      "MY STYLE": ["promo_trace", "promo_globo"],
+      "JERIVÁ": ["promo_trace", "promo_globo"],
+      "GRAN ROYAL": ["promo_trace", "promo_globo"],
+      "STILLO": ["promo_trace", "promo_globo"],
+      "ORLA PRAIANHA": ["promo_trace", "promo_globo"],
+      "PÁTIO ENG. NOVO": ["promo_trace", "promo_globo"],
+      "ESPLENDOR CARIOCA": ["promo_trace", "promo_globo"],
+      "CAIS DO VALONGO": ["promo_trace", "promo_globo"],
+      "RIO WONDER MAUÁ": ["promo_trace", "promo_globo"],
+      "PRAIA FORMOSA": ["promo_trace", "promo_globo"],
+      "RECANTO DA SERRA": ["promo_trace", "promo_globo"],
+      "PORTO VALENCA": ["promo_trace", "promo_globo"],
+      "VILLAGGIO VENTURA": ["promo_trace", "promo_globo"],
+      "RECANTO DA COLINA": ["promo_trace", "promo_globo"],
+      "RECANTO DAS FLORES": ["promo_trace", "promo_globo"],
+      "VILLAGGIO SILVESTRE": ["promo_trace", "promo_globo"],
+      "NATURALIS": ["promo_trace", "promo_globo"],
+      "BOSSA NOVA": ["promo_trace", "promo_globo"],
+      "VILLAGGIO NOVITÁ": ["promo_trace", "promo_globo"],
+      "RIO OCEANE": ["promo_trace", "promo_globo"],
+      "QUINTA DOS IPÊS": ["promo_trace", "promo_globo"],
+      "RIO SAMBA": ["promo_trace", "promo_globo"],
+      "RIO ARARAS": ["promo_trace", "promo_globo"],
+      "VIVA VIDA ZONA OESTE": ["promo_trace", "promo_globo"],
+      "LIRIOS 1": ["promo_trace", "promo_globo"],
+      "RIO JAZZ": ["promo_trace", "promo_globo"],
+      "VIVA VIDA HARMONIA": ["promo_trace", "promo_globo"],
+      "LIRIOS 2": ["promo_trace", "promo_globo"],
+      "VILLAGGIO VERONA": ["promo_trace", "promo_globo"],
+      "HIBISCO": ["promo_trace", "promo_globo"],
+      "VIVA VIDA FELICIDADE": ["promo_trace", "promo_globo"],
+      "VIVA VIDA RECANTO": ["promo_trace", "promo_globo"],
+      "FLORENÇA": ["promo_trace", "promo_globo"],
+      "WEST GARDEN": ["promo_trace", "promo_globo"],
+      "RIO ROCK": ["promo_trace", "promo_globo"],
+      "PARQUE TULIPA": ["promo_trace", "promo_globo"],
+      "ARTE ROSÁRIO": ["promo_trace", "promo_globo"],
+      "VIVA VIDA MOINHO": ["promo_trace", "promo_globo"],
+      "RIO MANTIQUEIRA": ["promo_trace", "promo_globo"],
+      "JARDIM JASMIM (tem plano light de 50mb)": ["promo_trace", "promo_globo"],
+      "PORTO BARÃO": ["promo_trace", "promo_globo"],
+      "RESIDENCIAL PEDRA DE GUARATIBA": ["promo_trace", "promo_globo"],
+      "RETIRO DA SERRA": ["promo_trace", "promo_globo"],
+      "RETIRO DOS PINHEIROS": ["promo_trace", "promo_globo"],
+      "LIVING CHOICE JOÃO PINHEIRO": ["promo_trace", "promo_globo"],
+      "SPAZIO ROCKFELLER": ["promo_trace", "promo_globo"],
+      "ÚNICO ENGENHO NOVO": ["promo_trace", "promo_globo"],
+      "DEZ ZONA NORTE": ["promo_trace", "promo_globo"],
+      "COMPLETO ENGENHO NOVO": ["promo_trace", "promo_globo"],
+      "SPAZIO ROOSEVELT": ["promo_trace", "promo_globo"],
+      "VIVA MAIS ENGENHO NOVO": ["promo_trace", "promo_globo"],
+      "DEZ IRAJA": ["promo_trace", "promo_globo"],
+      "COMPLETO PIEDADE": ["promo_trace", "promo_globo"],
+      "VIVAZ PIEDADE": ["promo_trace", "promo_globo"],
+      "ÚNICO NOVA IGUAÇU": ["promo_trace", "promo_globo"],
+      "VIVA VIDA ZONA NORTE": ["promo_trace", "promo_globo"],
+      "URBAN SÃO CRISTOVÃO": ["promo_trace", "promo_globo"],
+      "RIO WONDER PRAIA FORMOSA": ["promo_trace", "promo_globo"],
+      "ALTO SAO CRISTÓVAO": ["promo_trace", "promo_globo"],
+      "VIVAZ RAMOS": ["promo_trace", "promo_globo"],
+      "PARQUE IRIS": ["promo_canais6meses", "promo_globo"],
+      "NOVOLAR RECREIO": ["promo_canais6meses", "promo_globo"],
+      "RESERVA PONTAL": ["promo_canais6meses", "promo_globo"],
+      "ÚNICO BONSUCESSO": ["promo_canais6meses", "promo_globo"],
+      "CARIOCA PARK": ["promo_canais6meses", "promo_globo"],
+      "RESERVA CARIOCA": ["promo_canais6meses", "promo_globo"],
+      "VIVAZ MAGARÇA": ["promo_canais6meses", "promo_globo"],
+      "PARQUE VIOLETA": ["promo_canais6meses", "promo_globo"],
+      "FLOR DE LARANJEIRA": ["promo_canais6meses", "promo_globo"],
+      "FLORES 1 E 2": ["promo_canais6meses", "promo_globo"],
+      "RESERVA DO PARQUE 2": ["promo_canais6meses", "promo_globo"],
+      "SPAZIO LIFE": ["promo_canais6meses", "promo_globo"]
+    };
+    /* ==========================
+       3️⃣ LÓGICA DE EXIBIÇÃO
+    ========================== */
+    const listaContainer = document.getElementById("condominio-list");
+    const popup = document.getElementById("popup");
+    const promoList = document.getElementById("promo-list");
+    const searchBar = document.getElementById("searchBar");
+
+    const condominioNomes = Object.keys(condominioMap).sort((a, b) => a.localeCompare(b));
+
+    condominioNomes.forEach(nome => {
+      const btn = document.createElement("button");
+      btn.innerText = nome;
+      btn.onclick = () => mostrarPromocoes(nome);
+      listaContainer.appendChild(btn);
+    });
+
+    searchBar.addEventListener("input", e => {
+      const query = e.target.value.toLowerCase();
+      Array.from(listaContainer.children).forEach(btn => {
+        btn.style.display = btn.innerText.toLowerCase().includes(query) ? "block" : "none";
+      });
+    });
+
+    function mostrarPromocoes(nome) {
+      promoList.innerHTML = "";
+      const promoKeys = condominioMap[nome];
+
+      promoKeys.forEach(key => {
+        const promoItens = promocoes[key];
+        promoItens.forEach(promo => {
+          const item = document.createElement("div");
+          item.className = "promo-item";
+
+          const img = document.createElement("img");
+          img.src = promo.imagem;
+          img.alt = nome;
+
+          const copyImgBtn = document.createElement("button");
+          copyImgBtn.className = "copy-img-btn";
+          copyImgBtn.textContent = "Copiar Imagem";
+          copyImgBtn.onclick = () => copiarImagem(promo.imagem);
+
+          const textoBox = document.createElement("div");
+          textoBox.className = "texto-box";
+          textoBox.innerText = promo.texto;
+
+          const copyTextBtn = document.createElement("button");
+          copyTextBtn.className = "copy-text-btn";
+          copyTextBtn.textContent = "Copiar Texto";
+          copyTextBtn.onclick = () => copiarTexto(promo.texto);
+
+          textoBox.appendChild(copyTextBtn);
+          item.appendChild(img);
+          item.appendChild(copyImgBtn);
+          item.appendChild(textoBox);
+          promoList.appendChild(item);
+        });
+      });
+
+      popup.style.display = "flex";
+    }
+
+    function fecharPopup() {
+      popup.style.display = "none";
+    }
+
+    function copiarTexto(texto) {
+      navigator.clipboard.writeText(texto).then(() => {
+        alert("Texto copiado!");
+      });
+    }
+
+    async function copiarImagem(src) {
+      try {
+        const response = await fetch(src);
+        const blob = await response.blob();
+        await navigator.clipboard.write([
+          new ClipboardItem({ [blob.type]: blob })
+        ]);
+        alert("Imagem copiada!");
+      } catch (err) {
+        alert("Falha ao copiar imagem.");
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
